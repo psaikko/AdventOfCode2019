@@ -1,0 +1,5 @@
+lines = readlines(open("input"))
+lines = filter(s -> !isempty(s), lines)
+masses = map(s -> parse(Int, s), lines)
+fuels = map(m -> m ÷ 3 - 2, masses)
+println(sum(fuels))
