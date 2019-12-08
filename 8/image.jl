@@ -33,11 +33,13 @@ layer_sum = X_layers[:,1][:]
 for i in 1:size(X_layers)[2]
     global layer_sum
     layer = X_layers[:,i]
-    for j in 1:length(layer)
-        if layer_sum[j] == 2
-            layer_sum[j] = layer[j]
-        end
-    end
+    transparent = findall(x->x==2,layer_sum)
+    layer_sum[transparent] = layer[transparent]
 end
 
-println(reshape(layer_sum,W,H)')
+bitmap = reshape(layer_sum,W,H)'
+# using Pkg
+# Pkg.add("PyPlot")
+using PyPlot
+imshow(bitmap)
+show()
