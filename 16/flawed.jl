@@ -16,7 +16,7 @@ end
 function do_phases(numbers::Array{Int}, n)
     println(length(numbers))
     for phase in 1:n
-        println(phase)
+        #println(phase)
         transform_digit(position) = abs(sum(map(*, numbers, pattern_at(position)))) % 10
         numbers = transform_digit.(1:length(numbers))
     end
@@ -26,4 +26,4 @@ end
 tostring(a) = join(map(string, a))
 
 res = do_phases(copy(numbers), 100)
-println(tostring(res))
+println(tostring(res[1:8]))
