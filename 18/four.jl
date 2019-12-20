@@ -2,17 +2,16 @@ import Base.==
 import Base.hash
 
 struct State
-    c::Char
+    cs::Tuple{Char,Char,Char,Char}
     keys::Set{Char}
 end
 
-Base.isequal(a::State, b::State) = a.c == b.c && a.keys == b.keys
-Base.hash(a::State) = hash(a.c * join(sort(collect(a.keys))))
+Base.isequal(a::State, b::State) = a.cs == b.cs && a.keys == b.keys
+Base.hash(a::State) = hash(join(a.cs) * join(sort(collect(a.keys))))
 
 function main() 
     lines = readlines(open("input"))
     grid = collect.(strip.(lines))
-    println.(join.(grid))
 
     w = length(lines[1])
     h = length(lines)
@@ -32,7 +31,37 @@ function main()
         end
     end
 
-    start = State('@', Set())
+    # Transform
+    #
+    # ...    1#2
+    # .@. => ###
+    # ...    3#4
+    #
+    let (x,y) = locations['@'] 
+        grid[y-1][x] = '#'
+        grid[y+1][x] = '#'
+        grid[y][x-1] = '#'
+        grid[y][x+1] = '#'
+        grid[y][x]   = '#'
+
+        locations['1'] = (x-1,y-1)
+        grid[y-1][x-1] = '1'
+
+        locations['2'] = (x+1,y-1)
+        grid[y-1][x+1] = '2'
+
+        locations['3'] = (x-1,y+1)
+        grid[y+1][x-1] = '3'
+
+        locations['4'] = (x+1,y+1)
+        grid[y+1][x+1] = '4'
+
+        delete!(locations, '@')
+    end
+
+    println.(join.(grid))
+
+    start = State(('1','2','3','4'), Set())
 
     moves(x,y) = [(x+1,y),(x-1,y),(x,y-1),(x,y+1)]
 
@@ -73,6 +102,11 @@ function main()
         reqs = Set{Char}()
         dist = 1
         
+        if !haskey(pred, locations[b])
+            mem_kr[(a,b)] = (Set(), -1)
+            return (Set(), -1)
+        end
+
         # Backtrack to find doors on the shortest path
         # Unwritten assumption: maze is treelike, so only one sensible a->b path exists
         cx, cy = pred[locations[b]]
@@ -86,7 +120,6 @@ function main()
         end
 
         mem_kr[(a,b)] = (reqs, dist)
-        #println(a," ",b," ",reqs," ",dist)
         return (reqs, dist)
     end
 
@@ -107,25 +140,26 @@ function main()
 
         remaining_keys = setdiff(allkeys, s.keys)
 
-        #targets = reachable(s)
-
-        targets = [(nextkey, keys_required(s.c, nextkey)) for nextkey in remaining_keys]
-        targets = [(k, dist) for (k, (reqs, dist)) in targets if length(setdiff(reqs, s.keys)) == 0]
-
-        if length(targets) == 0
-            println(LB)
-            UB = min(LB, UB)       
+        if length(remaining_keys) == 0
             return (0, "")
         end
 
-        for (key, dist_to_key) in targets
-            keyset = Set(s.keys)
-            push!(keyset, key)
-            if dist_to_key+LB < UB
-                dist_rest, order = solve(State(key,keyset), dist_to_key + LB)
-                if dist_rest + dist_to_key < best_dist
-                    best_dist = dist_rest + dist_to_key
-                    best_order = key * order
+        done = 0
+
+        for robot_location in s.cs
+            targets = [(nextkey, keys_required(robot_location, nextkey)) for nextkey in remaining_keys]
+            targets = [(k, dist) for (k, (reqs, dist)) in targets if (dist != -1 && length(setdiff(reqs, s.keys)) == 0)]
+
+            for (key, dist_to_key) in targets
+                keyset = Set(s.keys)
+                push!(keyset, key)
+                if dist_to_key+LB < UB
+                    locs = Tuple(l == robot_location ? key : l for l in s.cs)
+                    dist_rest, order = solve(State(locs,keyset), dist_to_key + LB)
+                    if dist_rest + dist_to_key < best_dist
+                        best_dist = dist_rest + dist_to_key
+                        best_order = key * order
+                    end
                 end
             end
         end
